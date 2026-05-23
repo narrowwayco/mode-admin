@@ -604,6 +604,7 @@ function bindGlobalDeviceEvents() {
                     func === "pl" ||
                     func === "pa" ||
                     func === "restart" ||
+                    func === "pc-restart" ||
                     func === "shutdown"
                 ) {
                     let confirmMsg = "";
@@ -611,6 +612,7 @@ function bindGlobalDeviceEvents() {
                     if (func === "pl") confirmMsg = "플라스틱컵을 배출하시겠습니까?";
                     if (func === "pa") confirmMsg = "종이컵을 배출하시겠습니까?";
                     if (func === "restart") confirmMsg = "프로그램을 재시작하시겠습니까?";
+                    if (func === "pc-restart") confirmMsg = "PC를 재시작하시겠습니까?";
                     if (func === "shutdown") confirmMsg = "프로그램을 종료하시겠습니까?";
                     if (!confirm(confirmMsg)) return;
                 }
