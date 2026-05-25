@@ -93,6 +93,23 @@ export function initDeviceManage() {
                 } else {
                     deviceTypeEl.appendChild(a);
                 }
+                // 동적으로 추가한 버튼에 클릭 핸들러 연결 (전역 바인딩이 이미 실행되었을 수 있음)
+                try {
+                    const userInfoForCmd = JSON.parse(localStorage.getItem("userInfo") || "{}");
+                    const uid = userInfoForCmd.userId;
+                    a.addEventListener('click', (ev) => {
+                        ev.preventDefault();
+                        if (!uid) {
+                            showToast('사용자 정보가 없습니다', 3000, 'error');
+                            return;
+                        }
+                        if (!confirm('PC를 재시작하시겠습니까?')) return;
+                        // @ts-ignore - window.sendMachineCommand은 전역으로 정의되어 있음
+                        (window as any).sendMachineCommand(uid, { func: 'pc-restart' }, 'PC를 재시작합니다');
+                    });
+                } catch (e) {
+                    console.warn('pc-restart 클릭 핸들러 등록 실패', e);
+                }
             }
         }
     } catch (e) {
