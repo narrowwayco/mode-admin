@@ -71,6 +71,34 @@ export function initDeviceManage() {
     bindRefreshButtons();
     bindRefillButtons();
 
+    // admin 전용 버튼(pc-restart) 동적 삽입: 특정 admin 계정에서만 노출
+    try {
+        const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
+        const adminId = userInfo.adminId;
+        const allowed = new Set(["model0000", "test16"]);
+
+        if (adminId && allowed.has(adminId)) {
+            const deviceTypeEl = document.querySelector('.divice-type .grid.col3');
+            if (deviceTypeEl && !deviceTypeEl.querySelector('[data-func="pc-restart"]')) {
+                const a = document.createElement('a');
+                a.className = 'label full';
+                a.setAttribute('data-func', 'pc-restart');
+                a.setAttribute('data-msg', 'PC를 재시작합니다');
+                a.href = '#';
+                a.textContent = 'PC 재시작';
+                // insert after restart button if present
+                const restartBtn = deviceTypeEl.querySelector('[data-func="restart"]');
+                if (restartBtn && restartBtn.parentElement) {
+                    restartBtn.parentElement.insertBefore(a, restartBtn.nextSibling);
+                } else {
+                    deviceTypeEl.appendChild(a);
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('pc-restart 동적삽입 실패', e);
+    }
+
     loadStoreInfo();
 
     // 드래프트 로드(로컬에 저장된 변경사항 복원)
