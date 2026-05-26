@@ -73,16 +73,15 @@ export function initDeviceManage() {
 
     // admin 전용 버튼(pc-restart) 동적 삽입: 특정 admin 계정에서만 노출
     try {
-        const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-        const adminId = userInfo.adminId;
-        const allowed = new Set(["model0000", "test16"]);
 
-        if (adminId && allowed.has(adminId)) {
+        const allowed = new Set(["model0000", "zero16"]);
+
+        if (userId && allowed.has(userId)) {
             const deviceTypeEl = document.querySelector('.divice-type .grid.col3');
-            if (deviceTypeEl && !deviceTypeEl.querySelector('[data-func="pc-restart"]')) {
+            if (deviceTypeEl && !deviceTypeEl.querySelector('[data-func="restart-pc"]')) {
                 const a = document.createElement('a');
                 a.className = 'label full';
-                a.setAttribute('data-func', 'pc-restart');
+                a.setAttribute('data-func', 'restart-pc');
                 a.setAttribute('data-msg', 'PC를 재시작합니다');
                 a.href = '#';
                 a.textContent = 'PC 재시작';
@@ -105,15 +104,15 @@ export function initDeviceManage() {
                         }
                         if (!confirm('PC를 재시작하시겠습니까?')) return;
                         // @ts-ignore - window.sendMachineCommand은 전역으로 정의되어 있음
-                        (window as any).sendMachineCommand(uid, { func: 'pc-restart' }, 'PC를 재시작합니다');
+                        (window as any).sendMachineCommand(uid, { func: 'restart-pc' }, 'PC를 재시작합니다');
                     });
                 } catch (e) {
-                    console.warn('pc-restart 클릭 핸들러 등록 실패', e);
+                    console.warn('restart-pc 클릭 핸들러 등록 실패', e);
                 }
             }
         }
     } catch (e) {
-        console.warn('pc-restart 동적삽입 실패', e);
+        console.warn('restart-pc 동적삽입 실패', e);
     }
 
     loadStoreInfo();
