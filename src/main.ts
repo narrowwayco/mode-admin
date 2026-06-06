@@ -9,6 +9,7 @@ import Choices from "choices.js";
 import "choices.js/public/assets/styles/choices.min.css";
 import {initMenuMerge} from "./ts/page/menuMerge.ts";
 import {apiGet} from "./ts/api/apiHelpers.ts";
+import {getRefreshTokenForAutoLogin} from "./ts/utils/biometricAuth.ts";
 
 // 글로벌 등록
 declare global {
@@ -682,7 +683,7 @@ function bindGlobalDeviceEvents() {
 // 자동로그인
 async function tryAutoLogin() {
     const API_URL = "https://api.narrowroad-model.com"; // ✅ 전역 충돌 방지
-    const refreshToken = localStorage.getItem("refreshToken");
+    const refreshToken = await getRefreshTokenForAutoLogin();
     if (!refreshToken) {
         console.log("🔒 자동로그인 스킵: refreshToken 없음");
         return;
