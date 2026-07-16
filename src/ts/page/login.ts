@@ -1,6 +1,5 @@
 import {setStoredUser} from "../utils/userStorage.ts";
-
-const API_URL = "https://api.narrowroad-model.com"; // ✅ 전역 충돌 방지
+import {API_BASE_URL as API_URL} from "../config/apiConfig.ts"; // ✅ 전역 충돌 방지
 
 export function initLogin() {
     console.log("✅ login.ts 로드됨");
