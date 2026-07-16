@@ -3,8 +3,9 @@ import {
     AccessControl,
     NativeBiometric,
 } from "@capgo/capacitor-native-biometric";
+import {API_HOST} from "../config/apiConfig.ts";
 
-const BIOMETRIC_SERVER = "api.narrowroad-model.com";
+const BIOMETRIC_SERVER = API_HOST;
 const REFRESH_TOKEN_USERNAME = "refreshToken";
 
 function isNativeApp() {

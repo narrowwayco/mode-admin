@@ -2,6 +2,7 @@ import {ModelUser} from "../types/user";
 import {apiGet, apiPost, apiPut} from "../api/apiHelpers";
 import {getToken, getUserData, getUserInfo} from "../common/auth";
 import {getStoredUser} from "../utils/userStorage.ts";
+import {API_BASE_URL} from "../config/apiConfig.ts";
 
 // 파일 업로드 관련 전역 변수
 let logoFile: File | null = null;
@@ -1223,7 +1224,7 @@ async function processPendingCategoryDeletes(userId: string) {
 
                 //전체메뉴로 이동
                 const moveResponse = await fetch(
-                    `https://api.narrowroad-model.com/model_user_setting?func=move-category-to-all`,
+                    `${API_BASE_URL}/model_user_setting?func=move-category-to-all`,
                     {
                         method: "POST",
                         headers: {
