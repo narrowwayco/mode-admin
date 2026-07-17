@@ -481,6 +481,13 @@ async function loadStoreInfo() {
                 couponCheckbox.checked = !data.user.coupon; // coupon의 반대값
             }
 
+            const billingCheckbox = document.getElementById(
+                "billing-check"
+            ) as HTMLInputElement;
+            if (billingCheckbox) {
+                billingCheckbox.checked = data.user.billingPay === true;
+            }
+
 
             const vcatCheckbox = document.getElementById(
                 "vcat-check"
@@ -753,6 +760,9 @@ async function saveStoreInfo() {
         const couponCheckbox = document.getElementById(
             "coupon-check"
         ) as HTMLInputElement;
+        const billingCheckbox = document.getElementById(
+            "billing-check"
+        ) as HTMLInputElement;
         const vcatCheckbox = document.getElementById(
             "vcat-check"
         ) as HTMLInputElement;
@@ -874,6 +884,10 @@ async function saveStoreInfo() {
             hasChanges = true;
         }
 
+        if (billingCheckbox && billingCheckbox.checked !== (originalUserData?.billingPay === true)) {
+            hasChanges = true;
+        }
+
         if (vcatCheckbox && vcatCheckbox.checked !== originalUserData?.vcat) {
             hasChanges = true;
         }
@@ -988,6 +1002,13 @@ async function saveStoreInfo() {
                 couponCheckbox.checked !== !originalUserData?.coupon
             ) {
                 updateData.coupon = !couponCheckbox.checked;
+            }
+
+            if (
+                billingCheckbox &&
+                billingCheckbox.checked !== (originalUserData?.billingPay === true)
+            ) {
+                updateData.billingPay = billingCheckbox.checked;
             }
 
             // vcat 사용 추가 (변경된 경우만)

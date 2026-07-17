@@ -1,5 +1,19 @@
-const DEV_API_URL = "https://w3e145ynx4.execute-api.ap-northeast-2.amazonaws.com";
-const PROD_API_URL = "https://api.narrowroad-model.com";
+const requireUrl = (name: string, value: string | undefined): string => {
+    const normalized = value?.trim().replace(/\/+$/, "");
+    if (!normalized) {
+        throw new Error(`${name} is not configured`);
+    }
+    return normalized;
+};
 
-// `npm run dev`(로컬) 또는 `vite build --mode development`(dev 배포)면 dev 게이트웨이 사용
-export const API_BASE_URL = import.meta.env.DEV ? DEV_API_URL : PROD_API_URL;
+export const API_BASE_URL = requireUrl(
+    "VITE_API_BASE_URL",
+    import.meta.env.VITE_API_BASE_URL,
+);
+
+export const APP_BASE_URL = requireUrl(
+    "VITE_APP_BASE_URL",
+    import.meta.env.VITE_APP_BASE_URL,
+);
+
+export const API_HOST = new URL(API_BASE_URL).host;
