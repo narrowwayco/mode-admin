@@ -4,7 +4,7 @@ import {
     getRefreshTokenForAutoLogin,
     saveRefreshTokenToSecureStore,
 } from "../utils/biometricAuth.ts";
-import {API_BASE_URL as API_URL} from "../config/apiConfig.ts"; // ✅ 전역 충돌 방지
+import {API_BASE_URL as API_URL, APP_BASE_URL} from "../config/apiConfig.ts"; // ✅ 전역 충돌 방지
 
 export function initLogin() {
     console.log("✅ login.ts 로드됨");
@@ -75,7 +75,7 @@ export function initLogin() {
 // ✅ 카카오 로그인 처리 함수
 function handleKakaoLogin() {
     const KAKAO_CLIENT_ID = "240886095629b93f9655026145a39487";
-    const KAKAO_REDIRECT_URI = "https://zeroadmin.kr/html/kakao-callback.html";
+    const KAKAO_REDIRECT_URI = `${APP_BASE_URL}/html/kakao-callback.html`;
     // 1) state 생성(보안/상관관계용) + 저장
     const bytes = new Uint8Array(16);
     crypto.getRandomValues(bytes);
