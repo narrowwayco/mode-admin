@@ -1,4 +1,4 @@
-import{c as m,h as f,e as p}from"./main-Bf0NETSS.js";async function $(){const t=(await(await m("/model_admin_user?func=get-admins")).json()).admins??[],i=(await(await m("/model_admin_franchise?func=list-franchise")).json()).franchises??[];let n=t.filter(a=>a.grade!==4);n=n.sort((a,r)=>{const u=[1,2,3],o=!u.includes(a.grade),l=!u.includes(r.grade);return o&&!l?-1:!o&&l?1:o&&l?0:a.grade-r.grade}),g(n,i),h()}function g(c,s){const t=document.getElementById("admin-table-body");t.innerHTML="",c.forEach(e=>{const d=e.grade===1,i=e.grade===3;t.innerHTML+=`
+import{e as m,i as f,f as p}from"./main-9l4h3B5c.js";async function $(){const t=(await(await m("/model_admin_user?func=get-admins")).json()).admins??[],i=(await(await m("/model_admin_franchise?func=list-franchise")).json()).franchises??[];let n=t.filter(a=>a.grade!==4);n=n.sort((a,r)=>{const u=[1,2,3],o=!u.includes(a.grade),l=!u.includes(r.grade);return o&&!l?-1:!o&&l?1:o&&l?0:a.grade-r.grade}),g(n,i),h()}function g(c,s){const t=document.getElementById("admin-table-body");t.innerHTML="",c.forEach(e=>{const d=e.grade===1,i=e.grade===3;t.innerHTML+=`
         <tr>
             <td>${e.adminId}</td>
 
