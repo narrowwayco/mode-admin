@@ -3,7 +3,7 @@ name: Deploy mode-admin development
 on:
   push:
     branches:
-      - fetch/api-env-branching
+      - master
   workflow_dispatch:
 
 permissions:
