@@ -3,6 +3,7 @@ import {AdminUserInfo, DecodedToken} from "../types/adminUser.ts";
 import {jwtDecode} from "jwt-decode";
 import {setStoredUser} from "../utils/userStorage.ts";
 import {apiGet} from "../api/apiHelpers.ts";
+import {API_BASE_URL as API_URL} from "../config/apiConfig.ts";
 
 /**
  * ✅ 토큰 사용자 권한 확인
@@ -138,8 +139,6 @@ export function getToken() {
     return sessionStorage.getItem("accessToken")
         || localStorage.getItem("accessToken");
 }
-
-const API_URL = "https://api.narrowroad-model.com";
 
 /**
  * ✅ 앱 시작 / 토큰 만료 시 자동 로그인 복구
