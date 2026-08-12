@@ -142,19 +142,67 @@ function initInventoryValidation() {
 }
 
 function initCategoryHandlers() {
-    // 삭제 버튼 이벤트 리스너 추가
-    const deleteButtons = document.querySelectorAll(".delete-category");
-    deleteButtons.forEach((button) => {
-        button.addEventListener("click", () =>
-            deleteCategory(button as HTMLButtonElement)
-        );
-    });
+    document.querySelectorAll<HTMLElement>("#category-container .category-item")
+        .forEach(bindCategoryControls);
 
     // 추가 버튼 이벤트 리스너 추가
     const addButton = document.querySelector(".category-actions .btn-outline");
     if (addButton) {
         addButton.addEventListener("click", addCategory);
     }
+}
+
+function bindCategoryControls(categoryItem: HTMLElement) {
+    const moveUp = categoryItem.querySelector<HTMLButtonElement>(".move-category-up");
+    const moveDown = categoryItem.querySelector<HTMLButtonElement>(".move-category-down");
+    const deleteButton = categoryItem.querySelector<HTMLButtonElement>(".delete-category");
+
+    moveUp?.addEventListener("click", () => moveCategory(categoryItem, -1));
+    moveDown?.addEventListener("click", () => moveCategory(categoryItem, 1));
+    deleteButton?.addEventListener("click", () => deleteCategory(deleteButton));
+}
+
+function moveCategory(categoryItem: HTMLElement, direction: -1 | 1) {
+    const container = document.getElementById("category-container");
+    if (!container) return;
+
+    const sibling = direction === -1
+        ? categoryItem.previousElementSibling
+        : categoryItem.nextElementSibling;
+    if (!sibling) return;
+
+    if (direction === -1) {
+        container.insertBefore(categoryItem, sibling);
+    } else {
+        container.insertBefore(sibling, categoryItem);
+    }
+    refreshCategoryOrderUi();
+}
+
+function refreshCategoryOrderUi() {
+    const categories = Array.from(
+        document.querySelectorAll<HTMLElement>("#category-container .category-item")
+    );
+
+    categories.forEach((category, index) => {
+        const label = category.querySelector("p");
+        const moveUp = category.querySelector<HTMLButtonElement>(".move-category-up");
+        const moveDown = category.querySelector<HTMLButtonElement>(".move-category-down");
+
+        if (label) label.textContent = `카테고리${index + 1}`;
+        if (moveUp) moveUp.disabled = index === 0;
+        if (moveDown) moveDown.disabled = index === categories.length - 1;
+    });
+}
+
+function categoryActionButtonsHtml() {
+    return `
+      <div class="category-order-actions">
+        <button type="button" class="btn-i move-category-up" title="위로 이동" aria-label="카테고리 위로 이동">↑</button>
+        <button type="button" class="btn-i move-category-down" title="아래로 이동" aria-label="카테고리 아래로 이동">↓</button>
+        <button type="button" class="btn-i delete-category" title="삭제" aria-label="카테고리 삭제">-</button>
+      </div>
+    `;
 }
 
 // 카테고리 추가 함수
@@ -178,18 +226,13 @@ function addCategory() {
     <p>카테고리${currentCount + 1}</p>
     <div class="category-input-group">
       <input type="text"/>
-      <button type="button" class="btn-i delete-category">-</button>
+      ${categoryActionButtonsHtml()}
     </div>
   `;
 
-    const deleteButton = newCategory.querySelector(".delete-category");
-    if (deleteButton) {
-        deleteButton.addEventListener("click", () =>
-            deleteCategory(deleteButton as HTMLButtonElement)
-        );
-    }
-
     container.appendChild(newCategory);
+    bindCategoryControls(newCategory);
+    refreshCategoryOrderUi();
 }
 
 // 카테고리 삭제 함수
@@ -217,6 +260,7 @@ function deleteCategory(button: HTMLButtonElement) {
     });
 
     categoryItem.remove();
+    refreshCategoryOrderUi();
 }
 
 // 저장 버튼 이벤트 핸들러
@@ -593,7 +637,7 @@ function loadCategoryData(categories: any[]) {
         <p>카테고리${noVal}</p>
         <div class="category-input-group">
           <input type="text" />
-          <button type="button" class="btn-i delete-category">-</button>
+          ${categoryActionButtonsHtml()}
         </div>
       `;
 
@@ -604,12 +648,11 @@ function loadCategoryData(categories: any[]) {
             input.dataset.originalItem = itemVal; // "coffee" 같은 기존 item
             input.dataset.originalNo = noVal;
 
-            const del = categoryItem.querySelector(".delete-category") as HTMLButtonElement;
-            if (del) del.addEventListener("click", () => deleteCategory(del));
-
             container.appendChild(categoryItem);
+            bindCategoryControls(categoryItem);
         });
     }
+    refreshCategoryOrderUi();
 }
 
 
