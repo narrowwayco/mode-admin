@@ -42,17 +42,26 @@ function updateCouponTypeFields() {
 function updateIssuanceFields() {
     const type = valueOf("issuance-type") as IssuanceType;
     const issueCount = byId<HTMLInputElement>("issue-count");
+    const totalLimit = byId<HTMLInputElement>("total-limit");
     const help = byId<HTMLParagraphElement>("issue-count-help");
 
-    if (!issueCount) return;
+    if (!issueCount || !totalLimit) return;
     const isPeriod = type === "PERIOD";
     issueCount.disabled = isPeriod;
     if (isPeriod) issueCount.value = "1";
+    totalLimit.disabled = !isPeriod;
+    if (!isPeriod) totalLimit.value = issueCount.value || "1";
     if (help) {
         help.textContent = isPeriod
             ? "기간형은 하나의 코드를 여러 고객이 한도 내에서 반복 사용합니다."
             : "수량형은 입력한 매수만큼 서로 다른 코드를 생성합니다.";
     }
+
+    issueCount.oninput = () => {
+        if (valueOf("issuance-type") === "QUANTITY") {
+            totalLimit.value = issueCount.value;
+        }
+    };
 }
 
 async function submitCouponForm(event: SubmitEvent) {
@@ -70,7 +79,9 @@ async function submitCouponForm(event: SubmitEvent) {
     const startsAt = valueOf("start-date");
     const expiresAt = valueOf("end-date");
     const issueCount = issuanceType === "PERIOD" ? 1 : Number(valueOf("issue-count"));
-    const totalLimit = Number(valueOf("total-limit"));
+    const totalLimit = issuanceType === "QUANTITY"
+        ? issueCount
+        : Number(valueOf("total-limit"));
     const dailyLimitText = valueOf("daily-limit");
     const dailyLimit = dailyLimitText ? Number(dailyLimitText) : null;
     const menuId = valueOf("sample");
@@ -162,7 +173,7 @@ function validateDateRange(startDate: string, endDate: string): boolean {
         return false;
     }
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = formatLocalDate(new Date());
     if (startDate < today) {
         showWarning("시작날짜는 오늘 이후로 설정해주세요.");
         return false;
@@ -174,7 +185,7 @@ function validateDateRange(startDate: string, endDate: string): boolean {
 
     const maxEndDate = new Date(`${startDate}T00:00:00`);
     maxEndDate.setDate(maxEndDate.getDate() + 365);
-    if (endDate > maxEndDate.toISOString().split("T")[0]) {
+    if (endDate > formatLocalDate(maxEndDate)) {
         showWarning("종료날짜는 시작날짜로부터 1년 이내로 설정해주세요.");
         return false;
     }
@@ -243,7 +254,7 @@ function initDateInputs() {
     const end = byId<HTMLInputElement>("end-date");
     if (!start || !end) return;
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = formatLocalDate(new Date());
     start.min = today;
     start.value = today;
     end.min = today;
@@ -254,8 +265,15 @@ function initDateInputs() {
         const maximum = new Date(`${start.value}T00:00:00`);
         maximum.setDate(maximum.getDate() + 365);
         end.min = start.value;
-        end.max = maximum.toISOString().split("T")[0];
+        end.max = formatLocalDate(maximum);
         if (end.value < start.value) end.value = start.value;
         if (end.value > end.max) end.value = end.max;
     });
+}
+
+function formatLocalDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
 }
