@@ -12,6 +12,116 @@ let totalItems = 0;
 let currentPage = 1;
 const pageLimit = 20;
 
+type CouponVisualType = "MENU" | "FIXED" | "PERCENT";
+
+const COUPON_OVERLAY_IMAGE_BY_TYPE: Partial<Record<CouponVisualType, string>> = {
+    FIXED: "/img/coupon-fixed-01.png",
+    PERCENT: "/img/coupon-percent-01.png",
+};
+
+function getCouponVisualType(couponData: any): CouponVisualType {
+    const rawType = String(
+        couponData?.discountType
+        ?? couponData?.discount_type
+        ?? couponData?.couponType
+        ?? couponData?.coupon_type
+        ?? couponData?.type
+        ?? couponData?.campaign?.discountType
+        ?? couponData?.campaign?.discount_type
+        ?? ""
+    ).toUpperCase();
+
+    if (["FIXED", "AMOUNT", "FIXED_AMOUNT", "DISCOUNT_AMOUNT"].includes(rawType)) {
+        return "FIXED";
+    }
+    if (["PERCENT", "PERCENTAGE", "RATE", "DISCOUNT_RATE"].includes(rawType)) {
+        return "PERCENT";
+    }
+
+    const title = String(couponData?.title ?? couponData?.name ?? "");
+    if (/금액권|정액/.test(title)) return "FIXED";
+    if (/할인율|할인률|정률|\d+\s*%/.test(title)) return "PERCENT";
+
+    if (couponData?.discountRate != null || couponData?.discount_rate != null) {
+        return "PERCENT";
+    }
+    if (couponData?.discountAmount != null || couponData?.discount_amount != null) {
+        return "FIXED";
+    }
+    return "MENU";
+}
+
+function updateCouponBackground(couponData: any) {
+    const couponImage = document.getElementById("coupon-image") as HTMLImageElement | null;
+    if (!couponImage) return;
+
+    const couponType = getCouponVisualType(couponData);
+    couponImage.src = "/img/coupon.svg";
+    couponImage.alt = couponType === "FIXED"
+        ? "정액 할인쿠폰"
+        : couponType === "PERCENT" ? "정률 할인쿠폰" : "메뉴 무료쿠폰";
+}
+
+function setDiscountCouponImage(couponData: any, title: string): boolean {
+    const couponType = getCouponVisualType(couponData);
+    const imageUrl = COUPON_OVERLAY_IMAGE_BY_TYPE[couponType];
+    if (!imageUrl) return false;
+
+    const couponContentImage = document.querySelector(
+        ".coupon-menu-image"
+    ) as HTMLImageElement | null;
+    if (couponContentImage) {
+        couponContentImage.src = imageUrl;
+        couponContentImage.alt = title;
+    }
+    return true;
+}
+
+function getCouponDiscountValue(couponData: any): number {
+    const rawValue = couponData?.discountValue
+        ?? couponData?.discount_value
+        ?? couponData?.discountAmount
+        ?? couponData?.discount_amount
+        ?? couponData?.discountRate
+        ?? couponData?.discount_rate
+        ?? couponData?.amount
+        ?? couponData?.rate
+        ?? couponData?.value
+        ?? couponData?.campaign?.discountValue
+        ?? couponData?.campaign?.discount_value
+        ?? couponData?.campaign?.discountAmount
+        ?? couponData?.campaign?.discountRate
+        ?? couponData?.campaign?.amount
+        ?? couponData?.campaign?.rate;
+    const value = Number(rawValue);
+    if (rawValue != null && Number.isFinite(value) && value > 0) return value;
+
+    const title = String(couponData?.title ?? couponData?.name ?? "");
+    const couponType = getCouponVisualType(couponData);
+    const match = couponType === "PERCENT"
+        ? title.match(/([\d,.]+)\s*%/)
+        : title.match(/([\d,.]+)\s*원/);
+    if (!match) return 0;
+
+    const titleValue = Number(match[1].replace(/,/g, ""));
+    return Number.isFinite(titleValue) ? titleValue : 0;
+}
+
+function getCouponBenefitText(couponData: any): string {
+    const couponType = getCouponVisualType(couponData);
+    const discountValue = getCouponDiscountValue(couponData);
+
+    if (couponType === "FIXED") {
+        return discountValue > 0
+            ? `${discountValue.toLocaleString("ko-KR")}원 할인`
+            : "정액 할인";
+    }
+    if (couponType === "PERCENT") {
+        return discountValue > 0 ? `${discountValue}% 할인` : "정률 할인";
+    }
+    return "1잔 무료";
+}
+
 export function initCoupon() {
     console.log("✅ coupon.ts 로드됨");
 
@@ -511,8 +621,17 @@ function showCouponPopup(couponData: any) {
 }
 
 // 메뉴 이미지 로드 함수
+function isValidMenuId(menuId: unknown): boolean {
+    if (menuId === null || menuId === undefined || menuId === "") return false;
+    return Number.isFinite(Number(menuId));
+}
+
 async function loadMenuImage(menuId: string, title: string) {
     try {
+        if (!isValidMenuId(menuId)) {
+            console.warn("메뉴 이미지 조회 생략: 유효한 menuId가 없습니다.", menuId);
+            return;
+        }
         const user = getStoredUser();
         if (!user) return;
 
@@ -544,6 +663,8 @@ async function loadMenuImage(menuId: string, title: string) {
 }
 
 function updateCouponOverlay(couponData: any) {
+    updateCouponBackground(couponData);
+
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         const year = date.getFullYear();
@@ -561,6 +682,7 @@ function updateCouponOverlay(couponData: any) {
     const titleLength = title.length;
     const titleClass = titleLength >= 10 ? "coupon-title small" : "coupon-title";
     const freeClass = titleLength >= 10 ? "coupon-free small" : "coupon-free";
+    const benefitText = getCouponBenefitText(couponData);
 
     const couponOverlay = document.querySelector(
         ".coupon-overlay"
@@ -570,14 +692,16 @@ function updateCouponOverlay(couponData: any) {
       <div class="coupon-period" style="transform: translateY(-7px);">${period}</div>
       <img class="coupon-menu-image" src="" alt="${title}" style="transform: translateY(-7px);" />
       <div class="${titleClass}" style="transform: translateY(-7px);">${title}</div>
-      <div class="${freeClass}" style="transform: translateY(-7px);">1잔 무료</div>
+      <div class="${freeClass}" style="transform: translateY(-7px);">${benefitText}</div>
       <div class="coupon-store" style="transform: translateY(-7px);">${storeName}</div>
       <div class="coupon-id" style="transform: translateY(-7px);">${couponData.couponId}</div>
       <canvas id="coupon-barcode" style="transform: translateY(-7px);"></canvas>  
     `;
 
         // ✅ 메뉴 이미지 로드
-        loadMenuImage(couponData.menuId, title);
+        if (!setDiscountCouponImage(couponData, title)) {
+            loadMenuImage(couponData.menuId, title);
+        }
     }
 
     setTimeout(() => {
@@ -786,6 +910,8 @@ async function generateCouponImage(couponData: any): Promise<void> {
 
 // 캡처용 오버레이 업데이트 함수
 async function updateCouponOverlayForCapture(couponData: any): Promise<void> {
+    updateCouponBackground(couponData);
+
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         const year = date.getFullYear();
@@ -803,6 +929,7 @@ async function updateCouponOverlayForCapture(couponData: any): Promise<void> {
     const titleLength = title.length;
     const titleClass = titleLength >= 10 ? "coupon-title small" : "coupon-title";
     const freeClass = titleLength >= 10 ? "coupon-free small" : "coupon-free";
+    const benefitText = getCouponBenefitText(couponData);
 
     const couponOverlay = document.querySelector(
         ".coupon-overlay"
@@ -812,13 +939,15 @@ async function updateCouponOverlayForCapture(couponData: any): Promise<void> {
       <div class="coupon-period" style="transform: translateY(-15px);">${period}</div>
       <img class="coupon-menu-image" src="" alt="${title}" style="transform: translateY(-7px);" />
       <div class="${titleClass}" style="transform: translateY(-7px);">${title}</div>
-      <div class="${freeClass}" style="transform: translateY(-7px);">1잔 무료</div>
+      <div class="${freeClass}" style="transform: translateY(-7px);">${benefitText}</div>
       <div class="coupon-store" style="transform: translateY(-7px);">${storeName}</div>
       <div class="coupon-id" style="transform: translateY(-7px);">${couponData.couponId}</div>
       <canvas id="coupon-barcode" style="transform: translateY(-7px);"></canvas>  
     `;
 
-        await loadMenuImageForCapture(couponData.menuId, title);
+        if (!setDiscountCouponImage(couponData, title)) {
+            await loadMenuImageForCapture(couponData.menuId, title);
+        }
     }
 }
 
@@ -829,6 +958,11 @@ async function loadMenuImageForCapture(
 ): Promise<void> {
     return new Promise((resolve) => {
         try {
+            if (!isValidMenuId(menuId)) {
+                console.warn("캡처용 메뉴 이미지 조회 생략: 유효한 menuId가 없습니다.", menuId);
+                resolve();
+                return;
+            }
             const user = getStoredUser();
             if (!user) {
                 console.log("❌ 사용자 정보 없음");
