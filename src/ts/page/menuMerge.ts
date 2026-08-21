@@ -328,12 +328,16 @@ async function handleCopyMenus() {
         targetUserId: selectedTargetAccount,
         menuIds: selectedMenuIds,
         renameImageWithNewMenuId: isExistingAccount,
+        replaceExisting: true,
     };
 
     console.log("복사 요청 데이터:", requestBody);
 
     if (
-        confirm(`선택된 ${selectedMenuIds.length}개의 메뉴를 복사하시겠습니까?`)
+        confirm(
+            `대상 계정의 기존 메뉴와 메뉴 이미지는 모두 삭제됩니다.\n` +
+            `선택한 ${selectedMenuIds.length}개의 메뉴로 교체하시겠습니까?`
+        )
     ) {
         try {
             const response = await apiPost(
@@ -342,7 +346,17 @@ async function handleCopyMenus() {
             );
 
             if (response.ok) {
-                window.showToast("메뉴 복사가 완료되었습니다.", 3000, "success");
+                const result = await response.json();
+                const imageErrors = result?.stats?.s3CopyErrors ?? [];
+                if (imageErrors.length > 0) {
+                    window.showToast(
+                        `메뉴는 교체됐지만 이미지 ${imageErrors.length}건 복사에 실패했습니다.`,
+                        5000,
+                        "warning"
+                    );
+                } else {
+                    window.showToast("기존 메뉴를 삭제하고 새 메뉴로 교체했습니다.", 3000, "success");
+                }
 
                 selectedCheckboxes.forEach((checkbox) => (checkbox.checked = false));
                 updateSelectAllCheckbox();
