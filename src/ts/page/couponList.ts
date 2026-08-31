@@ -1,6 +1,7 @@
 import {apiGet} from "../api/apiHelpers.ts";
 import {getStoredUser} from "../utils/userStorage.ts";
 import {renderBarcodeToCanvas} from "../utils/barcode.ts";
+import { IMAGE_BASE_URL } from "../config/apiConfig.ts";
 import html2canvas from "html2canvas";
 
 let allCoupons: any[] = [];
@@ -140,12 +141,12 @@ export function initCouponList() {
     // 사용자 정보 및 쿠폰 목록 로드
     loadUserInfoAndCoupons();
 
-    // 발급하기 버튼 클릭 시 couponDetail 페이지로 이동
+    // 개발 환경에서는 신형 쿠폰 발행 페이지를 기본으로 사용
     const openCouponDetailBtn = document.getElementById("open-coupon-detail");
 
     if (openCouponDetailBtn) {
         openCouponDetailBtn.addEventListener("click", function () {
-            window.location.href = "/html/couponDetail.html";
+            window.location.href = "/html/couponDetail2.html";
         });
     }
 
@@ -645,7 +646,7 @@ async function loadMenuImage(menuId: string, title: string) {
             if (data.image) {
                 const imageFile = data.image?.split("\\").pop() ?? "";
                 const encodedFile = encodeURIComponent(imageFile);
-                const imageUrl = `https://model-narrow-road.s3.ap-northeast-2.amazonaws.com/model/${data.userId}/${encodedFile}`;
+                const imageUrl = data.imageUrl || `${IMAGE_BASE_URL}/model/${data.userId}/${encodedFile}`;
 
                 const menuImage = document.querySelector(
                     ".coupon-menu-image"
@@ -987,7 +988,7 @@ async function loadMenuImageForCapture(
                     if (data.image) {
                         const imageFile = data.image?.split("\\").pop() ?? "";
                         const encodedFile = encodeURIComponent(imageFile);
-                        const imageUrl = `https://model-narrow-road.s3.ap-northeast-2.amazonaws.com/model/${data.userId}/${encodedFile}`;
+                        const imageUrl = data.imageUrl || `${IMAGE_BASE_URL}/model/${data.userId}/${encodedFile}`;
 
                         console.log("🖼️ 이미지 URL:", imageUrl);
 

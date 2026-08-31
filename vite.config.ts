@@ -37,7 +37,8 @@ export default defineConfig({
                 normalSet: resolve(__dirname, "html/normalSet.html"), // 추가: 회원 기본정보
                 deviceManage: resolve(__dirname, "html/deviceManage.html"), // 추가: 회원 기본정보
                 couponList: resolve(__dirname, "html/couponList.html"), // 추가: 쿠폰목록 페이지
-                couponDetail: resolve(__dirname, "html/couponDetail.html"), // 추가: 쿠폰상세 페이지
+                couponDetail: resolve(__dirname, "html/couponDetail.html"), // 기존 쿠폰 발행 페이지
+                couponDetail2: resolve(__dirname, "html/couponDetail2.html"), // 신형 쿠폰 발행 페이지
                 noticeList: resolve(__dirname, "html/noticeList.html"), // 추가: 공지사항목록 페이지
                 noticeDetail: resolve(__dirname, "html/noticeDetail.html"), // 추가: 공지사항 페이지
                 menuMerge: resolve(__dirname, "html/menuMerge.html"), // 메뉴 병합
