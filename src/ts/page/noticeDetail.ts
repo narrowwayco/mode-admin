@@ -61,6 +61,11 @@ function renderNoticeDetail(notice: NoticeDetail) {
         dateEl.textContent = formattedDate;
     }
 
+    const contentEl = document.getElementById("notice-content");
+    if (contentEl) {
+        contentEl.innerHTML = notice.content || "";
+    }
+
     const imagesContainer = document.getElementById("notice-images");
     if (imagesContainer && notice.images && notice.images.length > 0) {
         imagesContainer.innerHTML = notice.images
