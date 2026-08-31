@@ -79,23 +79,28 @@ function setDiscountCouponImage(couponData: any, title: string): boolean {
 }
 
 function getCouponDiscountValue(couponData: any): number {
-    const rawValue = couponData?.discountValue
-        ?? couponData?.discount_value
-        ?? couponData?.discountAmount
-        ?? couponData?.discount_amount
-        ?? couponData?.discountRate
-        ?? couponData?.discount_rate
-        ?? couponData?.amount
-        ?? couponData?.rate
-        ?? couponData?.value
-        ?? couponData?.campaign?.discountValue
-        ?? couponData?.campaign?.discount_value
-        ?? couponData?.campaign?.discountAmount
-        ?? couponData?.campaign?.discountRate
-        ?? couponData?.campaign?.amount
-        ?? couponData?.campaign?.rate;
-    const value = Number(rawValue);
-    if (rawValue != null && Number.isFinite(value) && value > 0) return value;
+    const rawValues = [
+        couponData?.discountValue,
+        couponData?.discount_value,
+        couponData?.discountAmount,
+        couponData?.discount_amount,
+        couponData?.discountRate,
+        couponData?.discount_rate,
+        couponData?.amount,
+        couponData?.rate,
+        couponData?.value,
+        couponData?.campaign?.discountValue,
+        couponData?.campaign?.discount_value,
+        couponData?.campaign?.discountAmount,
+        couponData?.campaign?.discountRate,
+        couponData?.campaign?.amount,
+        couponData?.campaign?.rate,
+    ];
+
+    for (const rawValue of rawValues) {
+        const value = Number(rawValue);
+        if (rawValue != null && Number.isFinite(value) && value > 0) return value;
+    }
 
     const title = String(couponData?.title ?? couponData?.name ?? "");
     const couponType = getCouponVisualType(couponData);
