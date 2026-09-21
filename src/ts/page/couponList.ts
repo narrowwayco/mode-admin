@@ -1,4 +1,4 @@
-import {apiGet} from "../api/apiHelpers.ts";
+import {apiGet, apiPost} from "../api/apiHelpers.ts";
 import {getStoredUser} from "../utils/userStorage.ts";
 import {renderBarcodeToCanvas} from "../utils/barcode.ts";
 import { IMAGE_BASE_URL } from "../config/apiConfig.ts";
@@ -194,11 +194,102 @@ async function loadUserInfoAndCoupons() {
             console.error("사용자 정보 로드 실패");
         }
 
-        await getCouponList(user.userId);
+        await Promise.all([
+            getCampaignList(user.userId),
+            getCouponList(user.userId),
+        ]);
     } catch (error) {
         console.error("API 호출 오류:", error);
         window.showToast("데이터를 불러오는데 실패했습니다.", 3000, "error");
     }
+}
+
+async function getCampaignList(userId: string) {
+    const tbody = document.getElementById("coupon-campaign-table-body");
+    if (!tbody) return;
+
+    try {
+        const response = await apiGet(
+            `/model_coupon?func=getCampaigns&userId=${encodeURIComponent(userId)}`
+        );
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.message || "신규 쿠폰 목록을 불러오지 못했습니다.");
+        renderCampaignTable(Array.isArray(data.items) ? data.items : [], userId);
+    } catch (error) {
+        console.error("신규 쿠폰 캠페인 목록 로드 실패:", error);
+        tbody.innerHTML = '<tr><td colspan="7">신규 쿠폰 목록을 불러오지 못했습니다.</td></tr>';
+    }
+}
+
+function renderCampaignTable(campaigns: any[], userId: string) {
+    const tbody = document.getElementById("coupon-campaign-table-body");
+    if (!tbody) return;
+    tbody.replaceChildren();
+
+    if (campaigns.length === 0) {
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+        cell.colSpan = 7;
+        cell.textContent = "발급된 신규 쿠폰이 없습니다.";
+        row.appendChild(cell);
+        tbody.appendChild(row);
+        return;
+    }
+
+    const typeNames: Record<string, string> = {
+        MENU: "메뉴 무료",
+        FIXED: "정액",
+        PERCENT: "정률",
+    };
+
+    campaigns.forEach((campaign, index) => {
+        const row = document.createElement("tr");
+        const cells = [
+            String(index + 1),
+            String(campaign.name || "-"),
+            typeNames[campaign.discountType] || String(campaign.discountType || "-"),
+            `${campaign.startsAt || "-"} ~ ${campaign.expiresAt || "-"}`,
+            String(campaign.issueCount || 0),
+            campaign.status === "ACTIVE" ? "사용 가능" : "삭제됨",
+        ];
+
+        cells.forEach((text) => {
+            const cell = document.createElement("td");
+            cell.textContent = text;
+            row.appendChild(cell);
+        });
+
+        const actionCell = document.createElement("td");
+        if (campaign.status === "ACTIVE") {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "btn red";
+            button.textContent = "삭제";
+            button.addEventListener("click", async () => {
+                if (!confirm(`'${campaign.name || "쿠폰"}'을 삭제하시겠습니까?\n삭제 후 발급된 쿠폰은 사용할 수 없습니다.`)) return;
+                button.disabled = true;
+                try {
+                    const response = await apiPost("/model_coupon?func=deleteCampaign", {
+                        userId,
+                        campaignId: campaign.campaignId,
+                    });
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok) throw new Error(data.message || "쿠폰 삭제에 실패했습니다.");
+                    window.showToast("쿠폰이 삭제되었습니다.", 2500, "success");
+                    await getCampaignList(userId);
+                } catch (error) {
+                    const message = error instanceof Error ? error.message : "쿠폰 삭제 중 오류가 발생했습니다.";
+                    window.showToast(message, 3000, "error");
+                    button.disabled = false;
+                }
+            });
+            actionCell.appendChild(button);
+        } else {
+            actionCell.textContent = "-";
+        }
+        row.appendChild(actionCell);
+        tbody.appendChild(row);
+    });
 }
 
 async function getCouponList(userId: string) {
