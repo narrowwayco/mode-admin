@@ -187,11 +187,26 @@
 }
 
 .coupon-list-btn {
-    width: 120px !important;
-    padding: 1rem 2rem !important;
+    width: auto !important;
+    min-width: 68px;
+    padding: 0.65rem 0.8rem !important;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex: 0 0 auto;
+    font-size: 1.2rem !important;
+    white-space: nowrap;
+}
+
+#coupon-page .title-flex .btnFlex {
+    gap: 0.4rem;
+    flex-wrap: nowrap;
+}
+
+.coupon-list-btn img {
+    width: 14px;
+    height: 14px;
+    margin-right: 0.3rem;
 }
 
 /* 페이지네이션 버튼 스타일 */
