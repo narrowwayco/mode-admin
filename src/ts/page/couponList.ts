@@ -246,11 +246,15 @@ function withCampaignStatus(coupon: any) {
 
 function getStatusFilteredCoupons(coupons: any[]) {
     if (currentStatusFilter === "ALL") return coupons;
-    return coupons.filter((coupon) => (
-        currentStatusFilter === "DELETED"
-            ? coupon.campaignStatus === "DELETED"
-            : coupon.campaignStatus !== "DELETED"
-    ));
+    return coupons.filter((coupon) => {
+        if (currentStatusFilter === "DELETED") {
+            return coupon.campaignStatus === "DELETED";
+        }
+        if (coupon.campaignStatus === "DELETED") return false;
+        if (currentStatusFilter === "USED") return Number(coupon.count) === 0;
+        if (currentStatusFilter === "UNUSED") return Number(coupon.count) !== 0;
+        return true;
+    });
 }
 
 async function deleteSelectedCouponCampaigns() {
