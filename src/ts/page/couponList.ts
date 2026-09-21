@@ -12,6 +12,8 @@ let pageKeys: any[] = [];
 let totalItems = 0;
 let currentPage = 1;
 const pageLimit = 20;
+let currentStatusFilter = "ALL";
+const campaignStatusById = new Map<string, string>();
 
 type CouponVisualType = "MENU" | "FIXED" | "PERCENT";
 
@@ -166,6 +168,17 @@ export function initCouponList() {
         );
     }
 
+    document.getElementById("delete-selected-coupons")?.addEventListener(
+        "click",
+        deleteSelectedCouponCampaigns
+    );
+
+    const statusFilter = document.getElementById("coupon-status-filter") as HTMLSelectElement | null;
+    statusFilter?.addEventListener("change", () => {
+        currentStatusFilter = statusFilter.value;
+        renderCouponTable(getStatusFilteredCoupons(allCoupons));
+    });
+
     // 전체 선택 체크박스 이벤트 리스너 추가
     initSelectAllCheckbox();
 
@@ -194,102 +207,86 @@ async function loadUserInfoAndCoupons() {
             console.error("사용자 정보 로드 실패");
         }
 
-        await Promise.all([
-            getCampaignList(user.userId),
-            getCouponList(user.userId),
-        ]);
+        await loadCampaignStatuses(user.userId);
+        await getCouponList(user.userId);
     } catch (error) {
         console.error("API 호출 오류:", error);
         window.showToast("데이터를 불러오는데 실패했습니다.", 3000, "error");
     }
 }
 
-async function getCampaignList(userId: string) {
-    const tbody = document.getElementById("coupon-campaign-table-body");
-    if (!tbody) return;
-
+async function loadCampaignStatuses(userId: string) {
     try {
         const response = await apiGet(
             `/model_coupon?func=getCampaigns&userId=${encodeURIComponent(userId)}`
         );
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.message || "신규 쿠폰 목록을 불러오지 못했습니다.");
-        renderCampaignTable(Array.isArray(data.items) ? data.items : [], userId);
+        campaignStatusById.clear();
+        (Array.isArray(data.items) ? data.items : []).forEach((campaign: any) => {
+            if (campaign?.campaignId) {
+                campaignStatusById.set(String(campaign.campaignId), String(campaign.status || "ACTIVE"));
+            }
+        });
     } catch (error) {
         console.error("신규 쿠폰 캠페인 목록 로드 실패:", error);
-        tbody.innerHTML = '<tr><td colspan="7">신규 쿠폰 목록을 불러오지 못했습니다.</td></tr>';
+        campaignStatusById.clear();
     }
 }
 
-function renderCampaignTable(campaigns: any[], userId: string) {
-    const tbody = document.getElementById("coupon-campaign-table-body");
-    if (!tbody) return;
-    tbody.replaceChildren();
+function withCampaignStatus(coupon: any) {
+    const campaignId = String(coupon?.campaignId || "");
+    return {
+        ...coupon,
+        campaignStatus: campaignId
+            ? campaignStatusById.get(campaignId) || "ACTIVE"
+            : "ACTIVE",
+    };
+}
 
-    if (campaigns.length === 0) {
-        const row = document.createElement("tr");
-        const cell = document.createElement("td");
-        cell.colSpan = 7;
-        cell.textContent = "발급된 신규 쿠폰이 없습니다.";
-        row.appendChild(cell);
-        tbody.appendChild(row);
+function getStatusFilteredCoupons(coupons: any[]) {
+    if (currentStatusFilter === "ALL") return coupons;
+    return coupons.filter((coupon) => (
+        currentStatusFilter === "DELETED"
+            ? coupon.campaignStatus === "DELETED"
+            : coupon.campaignStatus !== "DELETED"
+    ));
+}
+
+async function deleteSelectedCouponCampaigns() {
+    const checked = Array.from(document.querySelectorAll<HTMLInputElement>(
+        '#coupon-table-body input[type="checkbox"]:checked'
+    ));
+    const campaignIds = [...new Set(
+        checked
+            .map((checkbox) => checkbox.dataset.campaignId || "")
+            .filter((campaignId) => campaignId && campaignStatusById.get(campaignId) !== "DELETED")
+    )];
+
+    if (campaignIds.length === 0) {
+        window.showToast("삭제 가능한 신규 쿠폰을 선택해주세요.", 3000, "warning");
         return;
     }
+    if (!confirm(`선택한 신규 쿠폰 ${campaignIds.length}건을 삭제하시겠습니까?\n삭제 후 발급된 쿠폰은 사용할 수 없습니다.`)) return;
 
-    const typeNames: Record<string, string> = {
-        MENU: "메뉴 무료",
-        FIXED: "정액",
-        PERCENT: "정률",
-    };
-
-    campaigns.forEach((campaign, index) => {
-        const row = document.createElement("tr");
-        const cells = [
-            String(index + 1),
-            String(campaign.name || "-"),
-            typeNames[campaign.discountType] || String(campaign.discountType || "-"),
-            `${campaign.startsAt || "-"} ~ ${campaign.expiresAt || "-"}`,
-            String(campaign.issueCount || 0),
-            campaign.status === "ACTIVE" ? "사용 가능" : "삭제됨",
-        ];
-
-        cells.forEach((text) => {
-            const cell = document.createElement("td");
-            cell.textContent = text;
-            row.appendChild(cell);
-        });
-
-        const actionCell = document.createElement("td");
-        if (campaign.status === "ACTIVE") {
-            const button = document.createElement("button");
-            button.type = "button";
-            button.className = "btn red";
-            button.textContent = "삭제";
-            button.addEventListener("click", async () => {
-                if (!confirm(`'${campaign.name || "쿠폰"}'을 삭제하시겠습니까?\n삭제 후 발급된 쿠폰은 사용할 수 없습니다.`)) return;
-                button.disabled = true;
-                try {
-                    const response = await apiPost("/model_coupon?func=deleteCampaign", {
-                        userId,
-                        campaignId: campaign.campaignId,
-                    });
-                    const data = await response.json().catch(() => ({}));
-                    if (!response.ok) throw new Error(data.message || "쿠폰 삭제에 실패했습니다.");
-                    window.showToast("쿠폰이 삭제되었습니다.", 2500, "success");
-                    await getCampaignList(userId);
-                } catch (error) {
-                    const message = error instanceof Error ? error.message : "쿠폰 삭제 중 오류가 발생했습니다.";
-                    window.showToast(message, 3000, "error");
-                    button.disabled = false;
-                }
-            });
-            actionCell.appendChild(button);
-        } else {
-            actionCell.textContent = "-";
+    const userId = String(getStoredUser()?.userId || "");
+    const button = document.getElementById("delete-selected-coupons") as HTMLButtonElement | null;
+    if (button) button.disabled = true;
+    try {
+        for (const campaignId of campaignIds) {
+            const response = await apiPost("/model_coupon?func=deleteCampaign", { userId, campaignId });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.message || "쿠폰 삭제에 실패했습니다.");
         }
-        row.appendChild(actionCell);
-        tbody.appendChild(row);
-    });
+        window.showToast(`${campaignIds.length}건의 쿠폰이 삭제되었습니다.`, 2500, "success");
+        await loadCampaignStatuses(userId);
+        await getCouponList(userId);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "쿠폰 삭제 중 오류가 발생했습니다.";
+        window.showToast(message, 3000, "error");
+    } finally {
+        if (button) button.disabled = false;
+    }
 }
 
 async function getCouponList(userId: string) {
@@ -355,16 +352,16 @@ async function getCouponList(userId: string) {
                     ...(firstData.items || []),
                     ...(secondData.items || []),
                 ];
-                allCoupons = combinedItems;
+                allCoupons = combinedItems.map(withCampaignStatus);
             } else {
-                allCoupons = firstData.items || [];
+                allCoupons = (firstData.items || []).map(withCampaignStatus);
             }
         } else {
             // 두 번째 요청이 불필요한 경우
-            allCoupons = firstData.items || [];
+            allCoupons = (firstData.items || []).map(withCampaignStatus);
         }
 
-        renderCouponTable(allCoupons);
+        renderCouponTable(getStatusFilteredCoupons(allCoupons));
         renderPagination();
     } catch (error) {
         console.error("쿠폰 목록 로드 실패:", error);
@@ -480,7 +477,7 @@ function initSearchFunction() {
     resetBtn.addEventListener("click", () => {
         searchInput.value = "";
         // 실시간 검색으로 전체 데이터 표시
-        renderCouponTable(allCoupons, false);
+        renderCouponTable(getStatusFilteredCoupons(allCoupons), false);
         renderPagination();
     });
 
@@ -510,20 +507,20 @@ function initSearchFunction() {
 //  실시간 검색 실행
 async function performRealTimeSearch(searchValue: string) {
     if (!searchValue.trim()) {
-        renderCouponTable(allCoupons);
+        renderCouponTable(getStatusFilteredCoupons(allCoupons));
         renderPagination();
         return;
     }
 
     const koreanConsonants = /^[ㄱ-ㅎ]+$/;
     if (koreanConsonants.test(searchValue)) {
-        renderCouponTable(allCoupons);
+        renderCouponTable(getStatusFilteredCoupons(allCoupons));
         renderPagination();
         return;
     }
 
     if (searchValue.length < 1) {
-        renderCouponTable(allCoupons);
+        renderCouponTable(getStatusFilteredCoupons(allCoupons));
         renderPagination();
         return;
     }
@@ -546,9 +543,9 @@ async function performRealTimeSearch(searchValue: string) {
         const response = await apiGet(apiUrl);
         if (response.ok) {
             const data = await response.json();
-            const searchResults = data.items || [];
+            const searchResults = (data.items || []).map(withCampaignStatus);
 
-            renderCouponTable(searchResults, true);
+            renderCouponTable(getStatusFilteredCoupons(searchResults), true);
 
             // ✅ 검색 중에는 페이지네이션 숨기기
             const paginationContainer = document.getElementById(
@@ -558,12 +555,11 @@ async function performRealTimeSearch(searchValue: string) {
                 paginationContainer.style.display = "none";
             }
         } else {
-            renderCouponTable(allCoupons, false);
-            renderCouponTable(allCoupons);
+            renderCouponTable(getStatusFilteredCoupons(allCoupons), false);
             renderPagination();
         }
     } catch (error) {
-        renderCouponTable(allCoupons);
+        renderCouponTable(getStatusFilteredCoupons(allCoupons));
         renderPagination();
     }
 }
@@ -654,7 +650,7 @@ function renderCouponTable(coupons: any[], isSearchResult: boolean = false) {
     coupons.forEach((coupon, index) => {
         const row = document.createElement("tr");
         row.classList.add("coupon-row");
-        row.setAttribute("data-coupon-index", index.toString());
+        row.setAttribute("data-coupon-id", String(coupon.couponId || ""));
 
         const formatDate = (dateString: string) => {
             const date = new Date(dateString);
@@ -667,7 +663,9 @@ function renderCouponTable(coupons: any[], isSearchResult: boolean = false) {
         const expiresAt = formatDate(coupon.expiresAt);
         const displayTitle = coupon.title.replace(" 무료", "");
 
-        const useYn = coupon.count === 0 ? '사용' : '미사용';
+        const useYn = coupon.campaignStatus === "DELETED"
+            ? "삭제"
+            : coupon.count === 0 ? "사용" : "미사용";
         // ✅ 검색 결과인지에 따라 번호 계산 방식 변경
         const itemNumber = isSearchResult
             ? index + 1
@@ -689,6 +687,8 @@ function renderCouponTable(coupons: any[], isSearchResult: boolean = false) {
             'input[type="checkbox"]'
         ) as HTMLInputElement;
         if (checkbox) {
+            checkbox.dataset.campaignId = String(coupon.campaignId || "");
+            checkbox.dataset.couponId = String(coupon.couponId || "");
             checkbox.addEventListener("change", updateSelectAllCheckbox);
             // 체크박스 클릭 시 이벤트 전파 방지
             checkbox.addEventListener("click", (e) => {
@@ -883,15 +883,13 @@ async function saveSelectedCouponsAsImages() {
     saveBtn.disabled = true;
 
     try {
-        const selectedIndices: number[] = [];
+        const selectedCouponIds: string[] = [];
         checkedCheckboxes.forEach((checkbox) => {
-            const row = checkbox.closest("tr") as HTMLElement;
-            const index = parseInt(row.getAttribute("data-coupon-index") || "0");
-            selectedIndices.push(index);
+            selectedCouponIds.push(checkbox.dataset.couponId || "");
         });
 
-        const selectedCoupons = selectedIndices
-            .map((index) => allCoupons[index])
+        const selectedCoupons = selectedCouponIds
+            .map((couponId) => allCoupons.find((coupon) => String(coupon.couponId) === couponId))
             .filter(Boolean);
 
         // 각 쿠폰에 대해 이미지 생성 및 저장

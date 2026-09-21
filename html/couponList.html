@@ -49,33 +49,25 @@
                     >
                         <img src="/img/image_icon.svg" alt=""/>이미지 저장
                     </button>
-                </div>
-            </div>
-
-            <div id="new-coupon-campaign-section">
-                <h3 style="margin: 20px 0 10px">신규 쿠폰 관리</h3>
-                <div class="tableArea" style="margin-bottom: 24px">
-                    <table>
-                        <thead>
-                        <tr>
-                            <th>순서</th>
-                            <th>쿠폰명</th>
-                            <th>유형</th>
-                            <th>사용기간</th>
-                            <th>발급매수</th>
-                            <th>상태</th>
-                            <th>관리</th>
-                        </tr>
-                        </thead>
-                        <tbody id="coupon-campaign-table-body">
-                        <tr><td colspan="7">불러오는 중입니다.</td></tr>
-                        </tbody>
-                    </table>
+                    <button
+                            type="button"
+                            class="btn red coupon-list-btn"
+                            id="delete-selected-coupons"
+                    >
+                        선택 삭제
+                    </button>
                 </div>
             </div>
 
             <!-- 검색창 추가 -->
-            <div class="search-container" style="margin-bottom: 20px">
+            <div class="search-container" style="margin-bottom: 20px; display: flex; gap: 10px">
+                <div class="select" style="min-width: 130px">
+                    <select id="coupon-status-filter" class="popup-select mb0">
+                        <option value="ALL">전체</option>
+                        <option value="ACTIVE">정상</option>
+                        <option value="DELETED">삭제</option>
+                    </select>
+                </div>
                 <div class="search-box">
                     <input
                             id="searchCoupon"
